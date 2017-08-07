@@ -20,7 +20,7 @@ class Timer():
     def restart(self):
         self.start_time =  time()
 
-madgraph_executable = '/Users/senkin/work/MG5_aMC_v2_5_1/bin/mg5_aMC'
+madgraph_executable = './bin/mg5_aMC'
 
 def make_folder_if_not_exists(folder):
     if not os.path.exists(folder):
