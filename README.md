@@ -20,13 +20,13 @@ Scripts for generic Dark Matter analysis in the context of same-sign tops.
 ### Quick recipe
 ```
 # download [MadGraph](https://launchpad.net/mg5amcnlo), for example
-wget https://launchpad.net/mg5amcnlo/2.0/2.6.x/+download/MG5_aMC_v2.6.0.tar.gz
-tar xvf MG5_aMC_v2.6.0.tar.gz
+wget https://launchpad.net/mg5amcnlo/2.0/2.5.x/+download/MG5_aMC_v2.5.5.tar.gz
+tar xvf MG5_aMC_v2.5.5.tar.gz
 
 # get the code from the repository and copy to the MadGraph working directory
 git clone https://github.com/senkin/DM_sstops_scripts
-cp DM_sstops_scripts/* MG5_aMC_v2_6_0/
-cd MG5_aMC_v2_6_0
+cp DM_sstops_scripts/* MG5_aMC_v2_5_5/
+cd MG5_aMC_v2_5_5
 
 # untar the DM model
 tar xvf MonotopDMF_UFO.tar.gz
