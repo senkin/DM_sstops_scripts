@@ -18,6 +18,22 @@ Scripts for generic Dark Matter analysis in the context of same-sign tops.
 * MonotopDMF_UFO.tar.gz: the Dark Matter model used by MadGraph
 
 ### Quick recipe
+If you only want to make the plots using the existing limits output:
+
+```
+# get the code from the repository
+git clone https://github.com/senkin/DM_sstops_scripts
+cd DM_sstops_scripts
+
+# make some plots (change input paths to the limit files accordingly)
+python make_plots.py
+
+# make some more plots
+python make_plots.py -a
+
+```
+
+Full recipe:
 ```
 # download [MadGraph](https://launchpad.net/mg5amcnlo), for example
 wget https://launchpad.net/mg5amcnlo/2.0/2.5.x/+download/MG5_aMC_v2.5.5.tar.gz
