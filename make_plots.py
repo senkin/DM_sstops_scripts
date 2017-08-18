@@ -5,7 +5,6 @@ from matplotlib.ticker import LogLocator, MultipleLocator
 from matplotlib.colors import LogNorm
 import scipy.interpolate
 import ROOT
-from ParameterSpace import ParameterSpace
 from optparse import OptionParser
 from calculate_MG_xsection import make_folder_if_not_exists
 from cross_sections_DM import *

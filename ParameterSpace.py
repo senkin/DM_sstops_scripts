@@ -59,10 +59,10 @@ class ParameterSpace :
 
     def parameter_space_name(self):
         name = 'mV%.0f_mDM%.0f_a_r%.1f' % (self.mV, self.mDM, self.a_r)
-        if not np.isnan(self.BR):
-            name += '_BR%.2f' % self.BR
-        elif not np.isnan(self.g):
+        if not np.isnan(self.g):
             name += '_g%.2f' % self.g
+        elif not np.isnan(self.BR):
+            name += '_BR%.2f' % self.BR
         elif not np.isnan(self.G_tot):
             name += '_G_tot%.2f' % self.G_tot
 
