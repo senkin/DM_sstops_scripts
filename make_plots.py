@@ -1,6 +1,7 @@
 import numpy             as np
-import matplotlib.pyplot as plt
 import matplotlib        as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
 from matplotlib.ticker import LogLocator, MultipleLocator
 from matplotlib.colors import LogNorm
 import scipy.interpolate
@@ -8,6 +9,7 @@ import ROOT
 from optparse import OptionParser
 from calculate_MG_xsection import make_folder_if_not_exists
 from cross_sections_DM import *
+
 
 processes = ['tt_excl','onshell','offshell', 'monotop','visible']
 # processes = ['visible']
@@ -527,7 +529,7 @@ if __name__ == '__main__':
                   help = "set path to save plots" )
     parser.add_option( "-f", "--fraction", action = "store_true", dest = "fraction_to_visible",
                       help = "Show fractions to total visible cross section" )
-    parser.add_option( "-i", "--input_folder", dest= "input_folder", default = '/Users/senkin/work/Analysis_work/LimitCalculation/Inputs/sstops_reweighting/LimitsOutput/FullMC_BlindExp/',
+    parser.add_option( "-i", "--input_folder", dest= "input_folder", default = '/afs/cern.ch/user/s/ssenkin/workspace/public/LimitsOutput/FullMC_BlindExp/',
                   help = "set path to limits" )
     parser.add_option( "-l", "--log_scale", action = "store_true", dest = "log_scale",
                       help = "Plot histograms in log scale" )

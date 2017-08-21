@@ -33,6 +33,36 @@ python make_plots.py -a
 
 ```
 
+If you run on lxplus, set up the virtual python environment beforehand:
+```
+# login on lxplus and go to your working directory
+# setup your tools, for example
+# setupATLAS
+# check that you have python 2.7, if not
+
+# lsetup python
+
+# create the virtual env
+
+virtualenv -p `which python` venv
+# and activate it
+
+source venv/bin/activate
+
+# now update some core tools
+
+pip install --upgrade pip
+pip install --upgrade setuptools
+
+# for some reason pip tries to use the wrong gcc version, so force it:
+
+export CC=`which gcc`
+
+# now you are ready to install all the software you need
+
+pip install numpy scipy matplotlib
+```
+
 Full recipe:
 ```
 # download [MadGraph](https://launchpad.net/mg5amcnlo), for example
