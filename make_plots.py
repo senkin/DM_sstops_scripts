@@ -24,7 +24,7 @@ lumi = 36.1
 np.seterr(divide='ignore', invalid='ignore') 
 
 # Plot settings
-mpl.rcParams['legend.frameon' ] = False
+#mpl.rcParams['legend.frameon' ] = False
 mpl.rcParams['legend.fontsize'] = 'xx-large'
 mpl.rcParams['xtick.labelsize'] = 16
 mpl.rcParams['ytick.labelsize'] = 16
@@ -61,10 +61,10 @@ def set_labels(plt, axes):
 
 
 def get_limit_value(mV, a_r, g, type=1):
-    global input_folder_with_limits
+    global input_folder_with_limits, mode, bkg_type
     signal_name = 'sstops_mV{0:.0f}'.format(mV) + '_a_r{0:.2f}'.format(a_r) + '_g{0:.2f}'.format(g)
 
-    input_root_file = ROOT.TFile(input_folder + '/' + signal_name + '/BlindExp/FullMCbkg.root', "read")
+    input_root_file = ROOT.TFile(input_folder + '/' + signal_name + '/' + mode + '/' + bkg_type + 'bkg.root', "read")
     histogram = input_root_file.Get("limit")
 
     value = histogram.GetBinContent(type)
@@ -529,24 +529,43 @@ if __name__ == '__main__':
                   help = "set path to save plots" )
     parser.add_option( "-f", "--fraction", action = "store_true", dest = "fraction_to_visible",
                       help = "Show fractions to total visible cross section" )
-    parser.add_option( "-i", "--input_folder", dest= "input_folder", default = '/afs/cern.ch/user/s/ssenkin/workspace/public/LimitsOutput/FullMC_BlindExp/',
+    parser.add_option( "-i", "--input_folder", dest= "input_folder", default = '/afs/cern.ch/user/s/ssenkin/workspace/public/LimitsOutput/',
                   help = "set path to limits" )
     parser.add_option( "-l", "--log_scale", action = "store_true", dest = "log_scale",
                       help = "Plot histograms in log scale" )
     parser.add_option( "-a", "--additional_plots", action = "store_true", dest = "more_plots",
                       help = "Make additional plots" )
+    parser.add_option( "-m", "--mode", dest= "mode", default = 'BlindExp',
+                  help = "set mode (e.g. BlindExp)" )
+    parser.add_option( "-d", "--data_driven", action = "store_true", dest = "data_driven",
+                      help = "Use data-driven background instead of full MC background" )
+
 
     ( options, args ) = parser.parse_args()
 
     output_folder = options.output_folder
     
-    log_scale = options.log_scale
-    if log_scale:
-        output_folder += '/log/'
-
     make_folder_if_not_exists(output_folder)
 
     input_folder = options.input_folder
+    data_driven = options.data_driven
+    mode = options.mode
+
+    if data_driven:
+        bkg_type = 'DD'
+    else:
+        bkg_type = 'FullMC'
+    
+    input_folder += '/' + bkg_type
+    output_folder += '/' + bkg_type
+
+    if options.mode != '':
+        input_folder += '_' + options.mode
+        output_folder += '_' + options.mode
+
+    log_scale = options.log_scale
+    if log_scale:
+        output_folder += '/log/'
 
     whole_data = np.genfromtxt('big_table.csv', delimiter=',')
     #delete first row (variable names)
