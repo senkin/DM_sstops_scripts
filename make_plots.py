@@ -110,15 +110,14 @@ def get_limit_border(masses, x, y, z):
         limit_border.append(np.asarray(limit_values[mass]).min())
     return limit_border
 
-def make_limit_plot_vs_mV(my_data, g_DM, process = 'visible'):
+def make_limit_plot_vs_mV(my_data, g_DM, mode = "BlindExp"):
     global output_folder, log_scale
-    if not 'visible' in process:
-        print 'Can not show limit plots for ', process
-        sys.exit(1)
     
     # plt.figure(figsize=(8,8))
     fig, axes = plt.subplots(figsize=(8,8))
-    plotTitle= 'Expected limit, $m_{DM}=$' + '{:.0f} GeV'.format(mDM) + ', $g_{DM}=$' + '{:.1f}'.format(g_DM)
+    plotTitle= 'Expected and observed limit, $m_{DM}=$' + '{:.0f} GeV'.format(mDM) + ', $g_{DM}=$' + '{:.1f}'.format(g_DM)
+    if "BlindExp" in mode:
+        plotTitle = plotTitle.replace("and observed ", "")
 
     # this is not working for some reason, need to investigate
     set_labels(plt, axes)
@@ -131,9 +130,15 @@ def make_limit_plot_vs_mV(my_data, g_DM, process = 'visible'):
     a_r_slice = my_data[:,2]
     mV_slice = my_data[:,5]
 
-    limits = np.asarray([get_limit_value(mV, a_r_value, g_DM) for mV, a_r_value in zip(mV_slice, a_r_slice)])
-    limits_upper = np.asarray([get_limit_value(mV, a_r_value, g_DM, 4) for mV, a_r_value in zip(mV_slice, a_r_slice)])
-    limits_lower = np.asarray([get_limit_value(mV, a_r_value, g_DM, 5) for mV, a_r_value in zip(mV_slice, a_r_slice)])
+    limits_exp = np.asarray([get_limit_value(mV, a_r_value, g_DM, 2) for mV, a_r_value in zip(mV_slice, a_r_slice)])
+    limits_upper_2sigma = np.asarray([get_limit_value(mV, a_r_value, g_DM, 3) for mV, a_r_value in zip(mV_slice, a_r_slice)])
+    limits_upper_1sigma = np.asarray([get_limit_value(mV, a_r_value, g_DM, 4) for mV, a_r_value in zip(mV_slice, a_r_slice)])
+    limits_lower_1sigma = np.asarray([get_limit_value(mV, a_r_value, g_DM, 5) for mV, a_r_value in zip(mV_slice, a_r_slice)])
+    limits_lower_2sigma = np.asarray([get_limit_value(mV, a_r_value, g_DM, 6) for mV, a_r_value in zip(mV_slice, a_r_slice)])
+    if not "BlindExp" in mode:
+        limits_obs = np.asarray([get_limit_value(mV, a_r_value, g_DM, 1) for mV, a_r_value in zip(mV_slice, a_r_slice)])
+    else:
+        limits_obs = limits_exp
 
     # x = mV_slice
     # y = a_r_slice
@@ -147,46 +152,28 @@ def make_limit_plot_vs_mV(my_data, g_DM, process = 'visible'):
     masses = sorted(np.unique(mV_slice))
     len_x = len(masses)
 
-    limit_border = get_limit_border(masses, mV_slice, a_r_slice, limits)
-    limit_border_upper = get_limit_border(masses, mV_slice, a_r_slice, limits_upper)
-    limit_border_lower = get_limit_border(masses, mV_slice, a_r_slice, limits_lower)
-    
-    # limit_border = [0.15, 0.2, 0.25, 0.3, 0.3]
-
-    plt.plot(masses, limit_border, label = 'Expected limit')
+    limit_border_exp = get_limit_border(masses, mV_slice, a_r_slice, limits_exp)
+    limit_border_upper_1sigma = get_limit_border(masses, mV_slice, a_r_slice, limits_upper_1sigma)
+    limit_border_lower_1sigma = get_limit_border(masses, mV_slice, a_r_slice, limits_lower_1sigma)
+    limit_border_upper_2sigma = get_limit_border(masses, mV_slice, a_r_slice, limits_upper_2sigma)
+    limit_border_lower_2sigma = get_limit_border(masses, mV_slice, a_r_slice, limits_lower_2sigma)
+    limit_border_obs = get_limit_border(masses, mV_slice, a_r_slice, limits_obs)
     
     lower_border = [a_r_slice.min() for i in range(len_x)]
     upper_border = [a_r_slice.max() for i in range(len_x)]
 
-    xi = masses
-    yi = sorted(np.unique(a_r_slice))
+    plt.fill_between(masses, limit_border_lower_2sigma, limit_border_upper_2sigma, facecolor='yellow', label = '$\pm2\sigma$')
+    plt.fill_between(masses, limit_border_lower_1sigma, limit_border_upper_1sigma, facecolor='lime', label = '$\pm1\sigma$')
+    plt.fill_between(masses, limit_border_obs, upper_border, facecolor='none', hatch = '//', edgecolor="red", label = 'Excluded area')
 
-    zi = np.asarray([[get_limit_value(mV, a_r_value, g_DM) for mV in xi] for a_r_value in yi])
-    # print 'Before masking:'
-    # print zi
-
-    #mask the limit values above 1
-    zi = np.ma.masked_where(zi > 1, zi)
-
-    # print 'After masking:'
-    # print zi
-    # raw_input("Press Enter to continue...")
-
-    # if log_scale:
-    #     plt.imshow(zi, vmin=z.min(), vmax=z.max(), origin='lower', aspect='auto',
-    #        extent=[x.min(), x.max(), y.min(), y.max()], norm=LogNorm(), interpolation='nearest')
-    # else:
-    #     plt.imshow(zi, vmin=z.min(), vmax=z.max(), origin='lower', aspect='auto',
-    #        extent=[x.min(), x.max(), y.min(), y.max()], interpolation='nearest')
-
-    plt.fill_between(masses, limit_border, upper_border, facecolor='green', alpha=0.5, label = 'Excluded area')
-    plt.fill_between(masses, limit_border_lower, limit_border_upper, facecolor='yellow', alpha=0.5, label = '$\pm1\sigma$')
-    # plt.fill_between(masses, limit_border_upper, upper_border, facecolor='green', alpha=0.5, label = 'Excluded area')
-    # plt.fill_between(masses, limit_border_lower, upper_border, facecolor='green', alpha=0.5, label = 'Excluded area')
+    plt.plot(masses, limit_border_exp, '--', color="black", label = 'Expected limit')
+    if not "BlindExp" in mode:
+        plt.plot(masses, limit_border_obs, color="black", label = 'Observed limit')
 
 
-    plt.xlim(min(xi), max(xi))
-    plt.ylim(min(yi), max(yi))
+
+    plt.xlim(min(masses), max(masses))
+    plt.ylim(min(a_r_slice), max(a_r_slice))
 
     ml = MultipleLocator(0.01)
     axes.yaxis.set_minor_locator(ml)
@@ -205,7 +192,10 @@ def make_limit_plot_vs_mV(my_data, g_DM, process = 'visible'):
 
     plt.tight_layout()
     make_folder_if_not_exists(output_folder + '/mu_values/')
-    plt.savefig(output_folder + '/mu_values/' + '/mu_%s_vs_mV_%.2f_gDM.pdf' % (process, g_DM) )    
+    
+    if mode!="":
+        mode = "_" + mode
+    plt.savefig(output_folder + '/mu_values/' + '/mu_visible_vs_mV_%.2f_gDM%s.pdf' % (g_DM, mode) )    
     plt.close()
 
 
@@ -529,13 +519,13 @@ if __name__ == '__main__':
                   help = "set path to save plots" )
     parser.add_option( "-f", "--fraction", action = "store_true", dest = "fraction_to_visible",
                       help = "Show fractions to total visible cross section" )
-    parser.add_option( "-i", "--input_folder", dest= "input_folder", default = '/afs/cern.ch/user/s/ssenkin/workspace/public/LimitsOutput/',
+    parser.add_option( "-i", "--input_folder", dest= "input_folder", default = '/afs/cern.ch/work/s/ssenkin/public/LimitsOutput/',
                   help = "set path to limits" )
     parser.add_option( "-l", "--log_scale", action = "store_true", dest = "log_scale",
                       help = "Plot histograms in log scale" )
     parser.add_option( "-a", "--additional_plots", action = "store_true", dest = "more_plots",
                       help = "Make additional plots" )
-    parser.add_option( "-m", "--mode", dest= "mode", default = 'BlindExp',
+    parser.add_option( "-m", "--mode", dest= "mode", default = '',
                   help = "set mode (e.g. BlindExp)" )
     parser.add_option( "-d", "--data_driven", action = "store_true", dest = "data_driven",
                       help = "Use data-driven background instead of full MC background" )
@@ -586,6 +576,6 @@ if __name__ == '__main__':
     # g_DMs = [0.5]
 
     for g_DM in g_DMs:
-        make_limit_plot_vs_mV(whole_data, g_DM)
+        make_limit_plot_vs_mV(whole_data, g_DM, mode)
 
     
