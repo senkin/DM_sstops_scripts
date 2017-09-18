@@ -164,10 +164,9 @@ def make_limit_plot_vs_mV(my_data, g_DM, mode = "BlindExp"):
 
     plt.fill_between(masses, limit_border_lower_2sigma, limit_border_upper_2sigma, facecolor='yellow', label = '$\pm2\sigma$')
     plt.fill_between(masses, limit_border_lower_1sigma, limit_border_upper_1sigma, facecolor='lime', label = '$\pm1\sigma$')
-    plt.fill_between(masses, limit_border_obs, upper_border, facecolor='none', hatch = '//', edgecolor="red", label = 'Excluded area')
-
     plt.plot(masses, limit_border_exp, '--', color="black", label = 'Expected limit')
     if not "BlindExp" in mode:
+        plt.fill_between(masses, limit_border_obs, upper_border, facecolor='none', hatch = '//', edgecolor="red", label = 'Excluded area')
         plt.plot(masses, limit_border_obs, color="black", label = 'Observed limit')
 
 
