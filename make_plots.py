@@ -77,24 +77,6 @@ def get_limit_value(mV, a_r, g, type=1):
     
     return value
 
-def make_all_plots(mV, my_data, process, fraction_to_visible = False):
-    make_limitless_plots(mV, my_data, process, fraction_to_visible)
-    if 'visible' in process:
-        make_limit_plots(mV, my_data)
-    elif not 'monotop' in process:
-        make_2D_plots(mV, my_data, process, show_alpha_beta_gamma = True)
-
-
-def make_limitless_plots(mV, my_data, process, fraction_to_visible = False):
-    make_1D_plots(mV, my_data, process, fraction_to_visible = fraction_to_visible)
-    make_2D_plots(mV, my_data, process, fraction_to_visible = fraction_to_visible)
-
-def make_limit_plots(mV, my_data, process = 'visible'):
-    make_1D_plots(mV, my_data, process = 'visible', with_limits = True)
-    make_1D_plots(mV, my_data, process = 'visible', show_only_mu = True)
-    make_2D_plots(mV, my_data, process = 'visible', with_limits = True)
-    make_2D_plots(mV, my_data, process = 'visible', show_only_mu = True)
-
 def get_limit_border(masses, x, y, z):
     limit_values = {}
 
@@ -109,6 +91,153 @@ def get_limit_border(masses, x, y, z):
     for mass in sorted(limit_values.keys()):
         limit_border.append(np.asarray(limit_values[mass]).min())
     return limit_border
+
+def make_all_plots(mV, my_data, process):
+    make_limitless_plots(mV, my_data, process)
+    if 'visible' in process:
+        make_limit_plots(mV, my_data)
+    elif not 'monotop' in process:
+        make_2D_plots(mV, my_data, process, show_alpha_beta_gamma = True)
+
+
+def make_limitless_plots(mV, my_data, process):
+    make_1D_plots(mV, my_data, process)
+    make_2D_plots(mV, my_data, process)
+
+def make_limit_plots(mV, my_data, process = 'visible'):
+    make_1D_plots(mV, my_data, process = 'visible', with_limits = True)
+    make_1D_plots(mV, my_data, process = 'visible', show_only_mu = True)
+    make_2D_plots(mV, my_data, process = 'visible', with_limits = True)
+    make_2D_plots(mV, my_data, process = 'visible', show_only_mu = True)
+
+
+def make_fraction_plots(mV, my_data, mode='visible'):
+    global output_folder, log_scale
+    
+    # sort by G_tot
+    my_data = my_data[my_data[:,1].argsort()]
+
+    if mode=='visible':
+        # slice in columns
+        BR = my_data[:,0]
+        G_tot = my_data[:,1]
+        a_r = my_data[:,2]
+
+        # cross-sections
+        xsection_tt_excl  = my_data[:,9]
+        xsection_onshell  = my_data[:,8]
+        xsection_offshell = my_data[:,7]
+        xsection_monotop  = my_data[:,6]
+        xsection_visible  = xsection_tt_excl + xsection_onshell + xsection_offshell
+        xsection_total    = xsection_visible + xsection_monotop
+
+        # fractions to visible
+        fraction_tt_excl  = xsection_tt_excl/xsection_visible
+        fraction_onshell  = xsection_onshell/xsection_visible
+        fraction_offshell = xsection_offshell/xsection_visible
+
+        plt.figure(figsize=(8,8))
+        plotTitle='$m_V=$'+'{:.1f} TeV'.format(mV/1000.) + \
+                  ' ; $m_{DM}=$' + '{:.0f} GeV'.format(mDM) #+ \
+                  # ' ; $g_{DM}=$' + '{:.1f} '.format(g_DM)
+
+        # x_slice = a_r
+        # x_label = '$g_{SM}$'
+        x_slice = G_tot
+        x_label = '$\Gamma_{tot}$'
+
+        x_values = sorted(np.unique(x_slice))
+        len_x = len(x_values)
+
+        lower_border = [0 for i in range(len_x)]
+        upper_border = [1 for i in range(len_x)]
+
+        plt.fill_between(x_values, lower_border, fraction_onshell, facecolor='red', label = 'on-shell V')
+        plt.fill_between(x_values, fraction_onshell,fraction_onshell+fraction_offshell, facecolor='blue', label = 'off-shell V')
+        plt.fill_between(x_values, fraction_onshell+fraction_offshell, fraction_tt_excl+fraction_onshell+fraction_offshell, facecolor='green', label = 'tt exclusive')
+
+        plt.legend(loc='best')
+        plt.title(plotTitle)  
+
+        plt.xlabel(x_label)
+        plt.ylabel('Fraction to visible $\sigma$')
+
+        if log_scale:
+            plt.axis([x_slice.min(), x_slice.max(), 0.01, 1])
+            plt.yscale('log')
+        else:
+            plt.axis([x_slice.min(), x_slice.max(), 0, 1])
+
+        plt.tight_layout()
+
+        make_folder_if_not_exists(output_folder + '/fractions/')
+        # plt.savefig(output_folder + '/fractions/' + 'fractions_gDM%s_mV%s.pdf' % (g_DM, mV) )
+        plt.savefig(output_folder + '/fractions/' + 'fractions_mV%s.pdf' % (mV) )
+        plt.close()
+
+    elif mode=='total':
+        # make visible vs invisible plots
+
+        # only consider g_DM = 1
+        g_DM = 1
+        my_data = my_data[my_data[:,3]==g_DM]
+
+        # slice in columns
+        BR = my_data[:,0]
+        G_tot = my_data[:,1]
+        a_r = my_data[:,2]
+
+        # cross-sections
+        xsection_tt_excl  = my_data[:,9]
+        xsection_onshell  = my_data[:,8]
+        xsection_offshell = my_data[:,7]
+        xsection_monotop  = my_data[:,6]
+        xsection_visible  = xsection_tt_excl + xsection_onshell + xsection_offshell
+        xsection_total    = xsection_visible + xsection_monotop
+
+        # fractions to total
+        fraction_visible   = xsection_visible/xsection_total
+        fraction_invisible = xsection_monotop/xsection_total
+
+        # x_slice = BR
+        # x_label = 'BR_$_{DM}$'
+        x_slice = G_tot
+        x_label = '$\Gamma_{tot}$'
+
+        x_values = sorted(np.unique(x_slice))
+        len_x = len(x_values)
+
+        lower_border = [0 for i in range(len_x)]
+        upper_border = [1 for i in range(len_x)]
+
+        plt.figure(figsize=(8,8))
+        plotTitle='$m_V=$'+'{:.1f} TeV'.format(mV/1000.) + \
+                  ' ; $m_{DM}=$' + '{:.0f} GeV'.format(mDM) + \
+                  ' ; $g_{DM}=$' + '{:.1f} '.format(g_DM)
+
+        plt.fill_between(x_values, lower_border, fraction_invisible, facecolor='blue', label = 'Invisible (monotop)')
+        plt.fill_between(x_values, fraction_invisible,fraction_visible+fraction_invisible, facecolor='green', label = 'Visible (di-top)')
+
+        if log_scale:
+            plt.axis([x_slice.min(), x_slice.max(), 0.01, 1])
+            plt.yscale('log')
+        else:
+            plt.axis([x_slice.min(), x_slice.max(), 0, 1])
+
+        plt.legend(loc='best')
+        plt.title(plotTitle)  
+
+        plt.xlabel(x_label)
+        plt.ylabel('Fraction to total $\sigma$')
+
+        plt.tight_layout()
+
+        make_folder_if_not_exists(output_folder + '/fractions/')
+        plt.savefig(output_folder + '/fractions/' + 'fractions_total_gDM%s_mV%s.pdf' % (g_DM, mV) )
+        # plt.savefig(output_folder + '/fractions/' + 'fractions_total_mV%s.pdf' % (mV) )
+
+        plt.close()
+
 
 def make_limit_plot_vs_mV(my_data, g_DM, mode = "BlindExp"):
     global output_folder, log_scale
@@ -198,7 +327,7 @@ def make_limit_plot_vs_mV(my_data, g_DM, mode = "BlindExp"):
     plt.close()
 
 
-def make_1D_plots(mV, my_data, process, with_limits = False, show_only_mu = False, fraction_to_visible = False):
+def make_1D_plots(mV, my_data, process, with_limits = False, show_only_mu = False):
     global output_folder, log_scale
     if not 'visible' in process and with_limits:
         print 'Can not show limit plots for ', process
@@ -240,16 +369,6 @@ def make_1D_plots(mV, my_data, process, with_limits = False, show_only_mu = Fals
                 limits = np.asarray([get_limit_value(mV, a_r_value, g_DM) for a_r_value in a_r])
                 xsection = xsection*limits
 
-        # show the fraction of the cross section to the total visible cross section
-        if fraction_to_visible and show_only_mu:
-            print 'Incompatible options fraction_to_visible and show_only_mu'
-            sys.exit(1)
-        elif fraction_to_visible and with_limits:
-            print 'Incompatible options fraction_to_visible and with_limits'
-            sys.exit(1)
-        elif fraction_to_visible:
-            xsection = xsection / (my_data_g_DM[:,9] + my_data_g_DM[:,8] + my_data_g_DM[:,7])
-
         x = a_r
         if show_only_mu:
             limits = np.asarray([get_limit_value(mV, a_r_value, g_DM) for a_r_value in a_r])
@@ -286,14 +405,8 @@ def make_1D_plots(mV, my_data, process, with_limits = False, show_only_mu = Fals
     else:
         plt.ylabel('$\mu$')
 
-    if fraction_to_visible:
-        plt.ylabel('$\sigma_\mathrm{%s}$/$\sigma_\mathrm{visible}$' % process.replace('_','-'))
-
     plt.tight_layout()
-    if fraction_to_visible:
-        make_folder_if_not_exists(output_folder + '/fractions_to_vis/')
-        plt.savefig(output_folder + '/fractions_to_vis/' + '/sigma_1D_%s_mV%s_fraction_to_vis.pdf' % (process, mV) )    
-    elif show_only_mu:
+    if show_only_mu:
         make_folder_if_not_exists(output_folder + '/mu_values/')
         plt.savefig(output_folder + '/mu_values/' + '/mu_1D_%s_mV%s.pdf' % (process, mV) )    
     elif with_limits: 
@@ -304,7 +417,7 @@ def make_1D_plots(mV, my_data, process, with_limits = False, show_only_mu = Fals
     plt.close()
 
 
-def make_2D_plots(mV, my_data, process, with_limits = False, show_only_mu = False, fraction_to_visible = False, show_alpha_beta_gamma = False):
+def make_2D_plots(mV, my_data, process, with_limits = False, show_only_mu = False, show_alpha_beta_gamma = False):
     global output_folder
     
     if not 'visible' in process and with_limits:
@@ -337,19 +450,9 @@ def make_2D_plots(mV, my_data, process, with_limits = False, show_only_mu = Fals
     if show_alpha_beta_gamma:
         weights = xsection/MC_cross_section
 
-    if show_alpha_beta_gamma and (fraction_to_visible or show_only_mu or with_limits):
+    if show_alpha_beta_gamma and (show_only_mu or with_limits):
         print 'Incompatible options with and show_alpha_beta_gamma'
         sys.exit(1)
-
-    # show the fraction of the cross section to the total visible cross section
-    if fraction_to_visible and show_only_mu:
-        print 'Incompatible options fraction_to_visible and show_only_mu'
-        sys.exit(1)
-    elif fraction_to_visible and with_limits:
-        print 'Incompatible options fraction_to_visible and with_limits'
-        sys.exit(1)
-    elif fraction_to_visible:
-        xsection = xsection / (my_data[:,9] + my_data[:,8] + my_data[:,7])
 
     plt.figure(figsize=(14,6))
     plotTitle='$m_V=$'+'{:.1f} TeV'.format(mV/1000.) + \
@@ -415,9 +518,6 @@ def make_2D_plots(mV, my_data, process, with_limits = False, show_only_mu = Fals
     else:
         plt.title('$\mu$ ; %s' % (plotTitle))
 
-    if fraction_to_visible:
-        plt.title('$\sigma_\mathrm{%s}$/$\sigma_\mathrm{visible}$ ; %s' % (process.replace('_','-'), plotTitle))
-
     plt.xlabel('$g_{SM}$')
     plt.ylabel('$g_{DM}$')
     if log_scale:
@@ -482,8 +582,6 @@ def make_2D_plots(mV, my_data, process, with_limits = False, show_only_mu = Fals
     else:
         plt.title('$\mu$ ; %s' % (plotTitle))
 
-    if fraction_to_visible:
-        plt.title('$\sigma_\mathrm{%s}$/$\sigma_\mathrm{visible}$ ; %s' % (process.replace('_','-'), plotTitle))
     plt.xlabel('$\Gamma_\mathrm{tot}$')
     plt.ylabel('BR$_{DM}$')
     if log_scale:
@@ -492,10 +590,7 @@ def make_2D_plots(mV, my_data, process, with_limits = False, show_only_mu = Fals
         plt.colorbar()
     
     plt.tight_layout()
-    if fraction_to_visible:
-        make_folder_if_not_exists(output_folder + '/fractions_to_vis/')
-        plt.savefig(output_folder + '/fractions_to_vis/' + '/sigma_%s_mV%s_fraction_to_vis.pdf' % (process, mV) )    
-    elif show_only_mu:
+    if show_only_mu:
         make_folder_if_not_exists(output_folder + '/mu_values/')
         plt.savefig(output_folder + '/mu_values/' + '/mu_%s_mV%s.pdf' % (process, mV) )    
     elif with_limits: 
@@ -516,12 +611,12 @@ if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option( "-o", "--output_folder", dest = "output_folder", default = 'plots/',
                   help = "set path to save plots" )
-    parser.add_option( "-f", "--fraction", action = "store_true", dest = "fraction_to_visible",
-                      help = "Show fractions to total visible cross section" )
     parser.add_option( "-i", "--input_folder", dest= "input_folder", default = '/afs/cern.ch/work/s/ssenkin/public/LimitsOutput/',
                   help = "set path to limits" )
     parser.add_option( "-l", "--log_scale", action = "store_true", dest = "log_scale",
                       help = "Plot histograms in log scale" )
+    parser.add_option( "-f", "--fraction_plots", action = "store_true", dest = "fraction_plots",
+                      help = "Make fraction plots (ratios to total/visible cross section)" )
     parser.add_option( "-a", "--additional_plots", action = "store_true", dest = "more_plots",
                       help = "Make additional plots" )
     parser.add_option( "-m", "--mode", dest= "mode", default = '',
@@ -565,7 +660,7 @@ if __name__ == '__main__':
         for mV in mediator_masses:
             single_mV_data = whole_data[whole_data[:,5]==mV]
             for process in processes:
-                make_all_plots(mV, single_mV_data, process, fraction_to_visible = options.fraction_to_visible and not 'visible' in process)
+                make_all_plots(mV, single_mV_data, process)
 
     # make a g_SM vs mV limit plot
     first_a_r_data = whole_data[whole_data[:,2]==whole_data[:,2][0]]
@@ -577,4 +672,9 @@ if __name__ == '__main__':
     for g_DM in g_DMs:
         make_limit_plot_vs_mV(whole_data, g_DM, mode)
 
-    
+    if options.fraction_plots:
+        for mV in mediator_masses:
+            single_mV_data = whole_data[whole_data[:,5]==mV]
+            make_fraction_plots(mV, single_mV_data, mode='visible')
+            make_fraction_plots(mV, single_mV_data, mode='total')
+
