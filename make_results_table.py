@@ -27,7 +27,7 @@ if __name__ == '__main__':
     initial_dict = {}
     common_dictionary = {}
 
-    for file in list_of_files:
+    for file in sorted(list_of_files):
     	dictionary = read_data_from_JSON(input_path + file)
     	process = dictionary['process']
     	try:
@@ -46,20 +46,24 @@ if __name__ == '__main__':
     for process in initial_dict.keys():
     	common_dictionary['xsection_' + process] = []
 
-    for key in initial_dict[initial_dict.keys()[0]].keys():
-    	if not "xsection" in key and not "m_top" in key:
-    		common_dictionary[key] = []
+    first_dict_key = next(iter(initial_dict))
+    available_sub_keys = initial_dict[first_dict_key].keys()
+    for key in available_sub_keys:
+        if not "xsection" in key and not "m_top" in key:
+            common_dictionary[key] = []
 
-    number_of_points = len(initial_dict[initial_dict.keys()[0]]['xsection'])
+    number_of_points = len(initial_dict[first_dict_key]['xsection'])
     for i in range(number_of_points):
-    	for key in initial_dict[initial_dict.keys()[0]].keys():
-    		if not "xsection" in key and not "m_top" in key:
-    			common_dictionary[key].append(initial_dict[initial_dict.keys()[0]][key][i])
-    	for process in initial_dict.keys():
-    		common_dictionary['xsection_' + process].append(initial_dict[process]['xsection'][i])
+        for key in available_sub_keys:
+            value = initial_dict[first_dict_key][key][i]
+            value = round(value, 6)
+            if not "xsection" in key and not "m_top" in key:
+                common_dictionary[key].append(value)
+        for process in initial_dict.keys():
+            common_dictionary['xsection_' + process].append(initial_dict[process]['xsection'][i])
 
-    keys = sorted(common_dictionary.keys())
+    keys_to_write = sorted(common_dictionary.keys())
     with open('big_table.csv', 'wb') as f:
 		writer = csv.writer(f)
-		writer.writerow(keys)
-		writer.writerows(zip(*[common_dictionary[key] for key in keys]))
+		writer.writerow(keys_to_write)
+		writer.writerows(zip(*[common_dictionary[key] for key in keys_to_write]))
