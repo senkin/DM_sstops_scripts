@@ -1,0 +1,11 @@
+# Generic files to ignore
+.pydevproject
+*.pyc
+*.pyo
+*.log
+*.png
+*.pdf
+*.out
+*.o
+*~
+.DS_Store
