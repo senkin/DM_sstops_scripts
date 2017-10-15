@@ -21,7 +21,7 @@ def make_folder_if_not_exists(folder):
             print "Could not create a folder ", folder
 
 def reweight_root_file(mV, process, data):
-    global output_folder, systematics
+    global output_folder, systematics, BR_run
     root_file_prefix = 'sstops_'
     if systematics:
         root_file_prefix = 'SystVar_sstops_'
@@ -29,6 +29,8 @@ def reweight_root_file(mV, process, data):
     # slice in columns
     a_r = data[:,2]
     g = data[:,3]
+    BR = data[:,0]
+
     if 'tt_excl' in process:
         xsection = data[:,9]
         MC_cross_section = cross_sections_tt_excl[str(mV)]
@@ -47,7 +49,10 @@ def reweight_root_file(mV, process, data):
     input_root_file = ROOT.TFile(input_folder + '/' + root_file_prefix + process + '_mV' + str(mV) + '.root', "read")
 
     for i in range(len(weights)):
-        weight_suffix = '_a_r%.2f_g%.2f' % (a_r[i], g[i])
+        if BR_run:
+            weight_suffix = '_a_r%.2f_BR%.2f' % (a_r[i], BR[i])
+        else:
+            weight_suffix = '_a_r%.2f_g%.2f' % (a_r[i], g[i])
         # create the new root file with reweighted histograms
         reweighted_root_file = ROOT.TFile(output_folder + '/' + root_file_prefix + process + '_mV' + str(mV) + weight_suffix + '.root', "recreate")
 
@@ -63,7 +68,7 @@ def reweight_root_file(mV, process, data):
     input_root_file.Close()
 
 def sum_files(mV, data):
-    global output_folder, systematics
+    global output_folder, systematics, BR_run
     root_file_prefix = 'sstops_'
     if systematics:
         root_file_prefix = 'SystVar_sstops_'
@@ -71,14 +76,22 @@ def sum_files(mV, data):
     # slice in columns
     a_r = data[:,2]
     g = data[:,3]
+    BR = data[:,0]
 
-    first_file_name = output_folder + '/' + root_file_prefix + processes[0] + '_mV' + str(mV) + '_a_r{0:.2f}'.format(a_r[0]) + '_g{0:.2f}'.format(g[0]) + '.root'
+    if BR_run:
+        first_file_name = output_folder + '/' + root_file_prefix + processes[0] + '_mV' + str(mV) + '_a_r{0:.2f}'.format(a_r[0]) + '_BR{0:.2f}'.format(BR[0]) + '.root'
+    else:
+        first_file_name = output_folder + '/' + root_file_prefix + processes[0] + '_mV' + str(mV) + '_a_r{0:.2f}'.format(a_r[0]) + '_g{0:.2f}'.format(g[0]) + '.root'
+
     first_file = ROOT.TFile(first_file_name, "read")
     list_of_histograms = [histogram.GetName() for histogram in first_file.GetListOfKeys()]
     first_file.Close()
 
     for i in range(len(a_r)):
-        weight_suffix = '_a_r%.2f_g%.2f' % (a_r[i], g[i])
+        if BR_run:
+            weight_suffix = '_a_r%.2f_BR%.2f' % (a_r[i], BR[i])
+        else:
+            weight_suffix = '_a_r%.2f_g%.2f' % (a_r[i], g[i])
 
         histograms_dict = {}
 
@@ -121,12 +134,18 @@ if __name__ == '__main__':
                   help = "set path to save weighted root files" )
     parser.add_option( "-i", "--input_folder", dest= "input_folder", default = '../',
                   help = "set path with input root files to reweight" )
+    parser.add_option( "-t", "--input_table", dest= "input_table", default = 'big_table.csv',
+                  help = "set a filename with the parameterization table (make_results_table.py output)" )
     parser.add_option( "-s", "--syst", action = "store_true", dest = "systematics",
                       help = "Reweight systematic variations (SystVar_*.root)" )
     parser.add_option( "-k", "--keep_subprocesses", action = "store_true", dest = "keep_subprocesses",
                       help = "Keep reweighted root files for all subprocesses" )
     parser.add_option( "-c", "--clean_up_subprocesses", action = "store_true", dest = "clean_up_subprocesses",
                       help = "Only clean up reweighted root files for all subprocesses" )
+    parser.add_option( "-m", "--mediator_mass", dest = "mass", default = '',
+                      help = "Choose the mediator mass in GeV (1000/1500/2000/2500/3000" )
+    parser.add_option( "-B", "--BR_parameters", action="store_true", dest="BR_run",
+                      help="Use BR parameterisation instead of the nominal one")
 
     ( options, args ) = parser.parse_args()
 
@@ -134,7 +153,9 @@ if __name__ == '__main__':
     make_folder_if_not_exists(output_folder)
 
     input_folder = options.input_folder
+    input_table = options.input_table
     systematics = options.systematics
+    BR_run = options.BR_run
 
     if options.clean_up_subprocesses:
         print 'Cleaning up reweighted subrpocess files...'
@@ -142,12 +163,17 @@ if __name__ == '__main__':
         print 'Done.'
         sys.exit(0)
 
-    whole_data = np.genfromtxt('big_table.csv', delimiter=',')
+    whole_data = np.genfromtxt(input_table, delimiter=',')
     #delete first row (variable names)
     whole_data = np.delete(whole_data, (0), axis=0)
 
+    if options.mass:
+        mediator_masses = [ int(options.mass) ]
+        options.keep_subprocesses = True
+
     # work with a single mV:
     for mV in mediator_masses:
+        print 'Working with mV = ', mV
         single_mV_data = whole_data[whole_data[:,5]==mV]
         for process in processes:
             reweight_root_file(mV, process, single_mV_data)
