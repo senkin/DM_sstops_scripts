@@ -58,7 +58,7 @@ class ParameterSpace :
         print 'G_tot = ', self.G_tot
 
     def parameter_space_name(self):
-        name = 'mV%.0f_mDM%.0f_a_r%.1f' % (self.mV, self.mDM, self.a_r)
+        name = 'mV%.0f_mDM%.0f_a_r%.2f' % (self.mV, self.mDM, self.a_r)
         if not np.isnan(self.g):
             name += '_g%.2f' % self.g
         elif not np.isnan(self.BR):
