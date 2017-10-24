@@ -38,9 +38,9 @@ def write_data_to_JSON(data, JSON_output_file, indent = True):
     output_file.close()
 
 
-def create_MG_config(subprocess, parameters, auto_width = True):
+def create_MG_config(subprocess, parameters, file_name_suffix, auto_width = True):
 	global workspace_path
-	name = workspace_path + subprocess + '_' + parameters.parameter_space_name()
+	name = workspace_path + subprocess + '_' + file_name_suffix
 	filename = name + '.dat'
 	file = open(filename,'w')
 	file.write('#************************************************************\n')
@@ -109,9 +109,9 @@ def create_MG_config(subprocess, parameters, auto_width = True):
 
 	file.close
 
-def run_MG_config(subprocess, parameters, auto_width = True):
+def run_MG_config(subprocess, parameters, file_name_suffix, auto_width = True):
 	global workspace_path
-	name = workspace_path + subprocess + '_' + parameters.parameter_space_name()
+	name = workspace_path + subprocess + '_' + file_name_suffix
 	config_filename = name + '.dat'
 	output_filename = name + '.out'
 	output_file = open(output_filename,'w')
@@ -121,30 +121,30 @@ def run_MG_config(subprocess, parameters, auto_width = True):
 	run.communicate()
 	output_file.close
 
-def read_MG_output(subprocess, parameters, auto_width = True):
+def read_MG_output(subprocess, parameters, file_name_suffix, auto_width = True, overwrite_with_MG = False):
 	global workspace_path, output_path
-	name = workspace_path + subprocess + '_' + parameters.parameter_space_name()
+	name = workspace_path + subprocess + '_' + file_name_suffix
 	output_banner_filename = name + '/Events/run_01/run_01_tag_1_banner.txt'
 	output_banner = open(output_banner_filename,'r')
 
 	# new parameters instance for MG-calculated quantities
-	parameters = ParameterSpace()
+	parameters_MG = ParameterSpace()
 
 	# parse the output for numbers
 	for line in output_banner.readlines():
 		columns = string.split(line)
 		if '# ar' in line:
-			parameters.set_a_r(columns[1])
+			parameters_MG.set_a_r(columns[1])
 		if '# gg' in line:
-			parameters.set_g(columns[1])
+			parameters_MG.set_g(columns[1])
 		if '# mv' in line:
-			parameters.set_mV(columns[1])
+			parameters_MG.set_mV(columns[1])
 		if '# mpsi' in line:
-			parameters.set_mDM(columns[1])
+			parameters_MG.set_mDM(columns[1])
 		if 'DECAY  32' in line:
-			parameters.set_G_tot(columns[2])
+			parameters_MG.set_G_tot(columns[2])
 		if '1000023  -1000023' in line:
-			parameters.set_BR(columns[0])
+			parameters_MG.set_BR(columns[0])
 		if 'Integrated weight (pb)' in line:
 			cross_section = float(columns[-1])
 
@@ -152,18 +152,26 @@ def read_MG_output(subprocess, parameters, auto_width = True):
 
 	print '*'*100
 	print 'MadGraph calculated quantities:'
-	parameters.print_initial_parameters()
+	parameters_MG.print_initial_parameters()
 	print '='*100
 	print 'Calculated cross-section [pb] = ', cross_section
 
-	data_to_write = copy.copy(parameters.__dict__)
+        if overwrite_with_MG:
+            print 'Using MG calculated parameters in the output.'
+            output_parameters = parameters_MG
+        else:
+            print 'Using analytically calculated parameters in the output.'
+            output_parameters = parameters
+
+	data_to_write = copy.copy(output_parameters.__dict__)
 	data_to_write['xsection'] = cross_section
 	data_to_write['process'] = subprocess
-	JSON_file_name = output_path + subprocess + '_' + parameters.parameter_space_name() + '.txt'
+	JSON_file_name = output_path + subprocess + '_' + file_name_suffix + '.txt'
 	write_data_to_JSON(data_to_write, JSON_file_name)
 	print 'Data written into JSON file ', JSON_file_name
 
-	return parameters
+	return parameters_MG
+
 
 
 if __name__ == '__main__':
@@ -223,6 +231,7 @@ if __name__ == '__main__':
     if options.total_width:
         parameters.set_G_tot(options.total_width)
 
+    file_name_suffix = copy.copy(parameters.parameter_space_name())
     print 'Input parameters:'
     parameters.print_initial_parameters()
     parameters.calculate_all()
@@ -233,17 +242,19 @@ if __name__ == '__main__':
     print '.'*100
 
     print 'Creating the new MadGraph config for %s process.' % current_process
-    create_MG_config(current_process, parameters, auto_width)
+    create_MG_config(current_process, parameters, file_name_suffix, auto_width)
     
-    run_MG_config(current_process, parameters, auto_width)
-    print 'Runtime for process %s, parameter set %s : %.1f min' % (current_process, parameters.parameter_space_name(), (timer.elapsed_time()-timer_value)/60)
+    run_MG_config(current_process, parameters, file_name_suffix, auto_width)
+    print 'Runtime for process %s, parameter set %s : %.1f min' % (current_process, file_name_suffix, (timer.elapsed_time()-timer_value)/60)
     
     timer_value = timer.elapsed_time()
-    
-    MG_calculated_parameters = read_MG_output(current_process, parameters, auto_width)
 
-    if parameters!=MG_calculated_parameters:
-    	print 'ERROR: analytically calculated parameters do not match with MadGraph calculated ones.'
-    	print 'Analytical parameters: ', parameters.__dict__
+    parameters_copy = copy.copy(parameters)
+    
+    MG_calculated_parameters = read_MG_output(current_process, parameters, file_name_suffix, auto_width)
+
+    if parameters_copy!=MG_calculated_parameters:
+    	print 'Warning: analytically calculated parameters do not exactly match with MadGraph calculated ones.'
+    	print 'Analytical parameters: ', parameters_copy.__dict__
     	print 'MG-calculated parameters: ', MG_calculated_parameters.__dict__
     	sys.exit(1)
