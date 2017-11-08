@@ -5,29 +5,33 @@ import glob
 from optparse import OptionParser
 
 working_path = '/afs/cern.ch/user/s/ssenkin/workspace/private/MadGraph/MG5_aMC_v2_5_5'
-output_path_for_results = '/afs/cern.ch/user/s/ssenkin/workspace/private/MadGraph/output_JSON_nominal_lower_a_r/'
-
-mDM = 1
-mediator_masses = [1000, 1500, 2000, 2500, 3000]
-#a_r_couplings = [0.01, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0]
-#a_r_couplings = [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15]
-#a_r_couplings = [0.05 + x*0.005 for x in range(60)]
-#a_r_couplings = [0.1 + x*0.01 for x in range(25)]
-a_r_couplings = [0.01+ x*0.01 for x in range(9)]
-
-#a_r_couplings = [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15]
-#a_r_couplings = [0.16, 0.17, 0.18, 0.19, 0.20, 0.21, 0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3]
-
-#g_couplings = [0.01, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0]                                                                                                                                   
-g_couplings = [0.1, 0.5, 1.0, 1.5]
-
-#BR_values = [x*0.1 for x in range(10)]
-##adjust extreme values
-#BR_values[0] = 0.01
-#BR_values.append(0.99)
-
+output_path_for_results = working_path + '/../output_JSON/'
 
 processes = ['tt_exclusive', 'onshellV', 'offshellV', 'monotop']
+
+# parameter space
+mDM = 1
+mediator_masses = [1000, 1500, 2000, 2500, 3000]
+
+# initial large scan
+#a_r_couplings = [0.01, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0]
+#g_couplings = [0.01, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0]
+
+# finer scan (used in the AN)
+# Warning: a_r%.2f suffix needs to be adjusted to a_r%.3f (as well as in other scripts)
+#a_r_couplings = [0.05 + x*0.005 for x in range(60)]
+#g_couplings = [0.1, 0.5, 1.0]
+
+# nominal scan with lower a_r range
+a_r_couplings = [0.01+ x*0.01 for x in range(34)]
+g_couplings = [0.1, 0.5, 1.0, 1.5]
+
+# BR scan
+BR_values = [x*0.1 for x in range(10)]
+# adjust extreme values
+BR_values[0] = 0.01
+BR_values.append(0.99)
+
 
 def prepare_tarball():
     # Copy some essential code into working path
@@ -87,7 +91,7 @@ def submit_job(signal, option):
     fout.write('rm -rf ${WorkingDirectory}\n')
     fout.close();
 
-    #Launch the batch job command
+    # Launch the batch job command (lxplus)
     os.system("chmod +x " + foutname)
     os.system("bsub -q 8nm " + os.path.abspath(foutname) )
     return
