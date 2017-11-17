@@ -394,13 +394,10 @@ def make_all_plots(mV, my_data, process):
 
 
 def make_limitless_plots(mV, my_data, process):
-    make_1D_plots(mV, my_data, process)
     make_2D_plots(mV, my_data, process)
 
 
 def make_limit_plots(mV, my_data, process='visible'):
-    make_1D_plots(mV, my_data, process, with_limits=True)
-    make_1D_plots(mV, my_data, process, show_only_mu=True)
     make_2D_plots(mV, my_data, process, with_limits=True)
     make_2D_plots(mV, my_data, process, show_only_mu=True)
 
@@ -876,100 +873,6 @@ def make_limit_plot_BR_a_r(tree, mV=1000, mode="BlindExp", process='visible'):
     if mode != "":
         mode = "_" + mode
     plt.savefig(output_folder + '/mu_values/' + '/mu_%s_BR_vs_a_r_%.0f_mV%s.pdf' % (process, mV, mode))
-    plt.close()
-
-
-def make_1D_plots(mV, my_data, process, with_limits=False, show_only_mu=False):
-    global output_folder, log_scale
-    if not ('visible' in process or 'monotop' in process) and with_limits:
-        print 'Can not show limit plots for ', process
-        sys.exit(1)
-
-    plt.figure(figsize=(8, 8))
-    plotTitle = '$m_V=$' + '{:.1f} TeV'.format(mV / 1000.) + \
-                ' ; $m_{DM}=$' + '{:.0f} GeV'.format(mDM)
-
-    first_a_r_data = my_data[my_data[:, 2] == my_data[:, 2][0]]
-    g_DMs = first_a_r_data[:, 3]
-
-    # select first, middle and last g_DMs
-    g_DMs = [g_DMs[0], g_DMs[(len(g_DMs) - 1) / 2], g_DMs[-1]]
-    # g_DMs = [0.5]
-
-    for g_DM in g_DMs:
-        # pick a given g_DM slice
-        my_data_g_DM = my_data[my_data[:, 3] == g_DM]
-
-        # slice in columns
-        BR = my_data_g_DM[:, 0]
-        G_tot = my_data_g_DM[:, 1]
-        a_r = my_data_g_DM[:, 2]
-        # print 'Process: ', process, 'with_limits: ', with_limits, 'mV = ', mV, 'show_only_mu: ', show_only_mu
-        # print 'a_r =', a_r
-
-        if 'tt_excl' in process:
-            xsection = my_data_g_DM[:, 9]
-        elif 'onshell' in process:
-            xsection = my_data_g_DM[:, 8]
-        elif 'offshell' in process:
-            xsection = my_data_g_DM[:, 7]
-        elif 'monotop' in process:
-            xsection = my_data_g_DM[:, 6]
-        elif 'visible' in process:
-            xsection = my_data_g_DM[:, 9] + my_data_g_DM[:, 8] + my_data_g_DM[:, 7]
-            if with_limits:
-                limits = np.asarray([get_limit_value(mV, a_r_value, g_DM) for a_r_value in a_r])
-                xsection = xsection * limits
-
-        x = a_r
-        if show_only_mu:
-            limits = np.asarray([get_limit_value(mV, a_r_value, g_DM) for a_r_value in a_r])
-            limits_upper = np.asarray([get_limit_value(mV, a_r_value, g_DM, type=4) for a_r_value in a_r])
-            limits_lower = np.asarray([get_limit_value(mV, a_r_value, g_DM, type=5) for a_r_value in a_r])
-            y = limits
-        else:
-            y = xsection
-
-        xi = np.linspace(x.min(), x.max(), 100)
-
-        # Interpolate
-        # if not show_only_mu:
-        f = scipy.interpolate.interp1d(x, y, kind='linear')
-        plt.plot(xi, f(xi), '-', label='$g_{DM}=%.1f$' % g_DM)
-
-        plt.scatter(x, y)
-
-        # draw a horizontal line
-        plt.axhline(y=1, color='red', linewidth=2)
-
-        # if show_only_mu:
-        #     plt.fill_between(x, limits_lower, limits_upper, facecolor='yellow', alpha=0.5, label='$\pm1\sigma$')
-
-        plt.axis([x.min(), x.max(), y.min(), 5])
-
-    plt.legend(loc='best')
-    plt.title(plotTitle)
-
-    plt.xlabel('$g_{SM}$')
-    plt.ylabel('$\sigma_\mathrm{%s}$ [pb]' % process.replace('_', '-'))
-
-    if log_scale:
-        plt.yscale('log')
-
-    if not show_only_mu:
-        plt.ylabel('$\sigma_\mathrm{%s}$ [pb]' % process.replace('_', '-'))
-    else:
-        plt.ylabel('$\mu$')
-
-    plt.tight_layout()
-    if show_only_mu:
-        make_folder_if_not_exists(output_folder + '/mu_values/')
-        plt.savefig(output_folder + '/mu_values/' + '/mu_1D_%s_mV%s.pdf' % (process, mV))
-    elif with_limits:
-        make_folder_if_not_exists(output_folder + '/with_limits/')
-        plt.savefig(output_folder + '/with_limits/' + '/sigma_excl_1D_%s_mV%s.pdf' % (process, mV))
-    else:
-        plt.savefig(output_folder + '/sigma_1D_%s_mV%s.pdf' % (process, mV))
     plt.close()
 
 
