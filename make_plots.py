@@ -693,130 +693,7 @@ def make_2D_limit_plot_from_tree(tree, variables='mV:a_r', select_gDM="", select
     plt.close()
 
 
-def make_limit_plot_couplings(tree, mV=1000, mode="BlindExp", process='visible'):
-    # an example of 2D limit plotting via 2D histogram drawing n
-    global output_folder, log_scale
-
-    my_tree = tree.Clone()
-
-    # plt.figure(figsize=(8,8))
-    fig, axes = plt.subplots(figsize=(8, 8))
-    plotTitle = 'Expected and observed limit, $m_{DM}=$' + '{:.0f} GeV'.format(
-        mDM) + ', $m_{V}=$' + '{:.0f} GeV'.format(mV)
-    if "BlindExp" in mode:
-        plotTitle = plotTitle.replace("and observed ", "")
-
-    if process == 'visible':
-        set_labels(plt, axes, additional_text_visible)
-        selection = "(limit_vis_exp < 1) && (mV==%s)" % mV
-    else:
-        set_labels(plt, axes, additional_text_invisible)
-        selection = "(limit_invis_exp < 1) && (mV==%s)" % mV
-
-    print 'Making a couplings 2D limit plot for %s process, mV = %.0f GeV' % (process, mV)
-
-    # histogram = Hist2D(16, 0, 3.0, 16, 0, 3.0)
-    histogram = Hist2D(16, 0, 3.0, 15, 0, 0.16)
-    my_tree.Draw("g:a_r", selection, hist=histogram)
-
-    # x_min = min(list( histogram.x()))
-    # x_min = max(list( histogram.x()))
-
-    im = rplt.imshow(histogram, axes=axes, cmap=my_cmap, vmin=0.1)
-
-    # colorbar = plt.colorbar( im )
-
-
-    # print histogram.Integral()
-    # raw_input("Press Enter to continue...")
-
-    # ml = MultipleLocator(0.01)
-    # axes.yaxis.set_minor_locator(ml)
-
-    plt.title(plotTitle)
-    plt.xlabel('$g_{DM}$')
-    plt.ylabel('$g_{SM}$')
-
-    plt.legend(loc='lower right')
-
-    plt.xlim(min(list(histogram.x())), max(list(histogram.x())))
-    plt.ylim(min(list(histogram.y())), max(list(histogram.y())))
-
-    # if log_scale:
-    #     plt.colorbar( ticks = LogLocator(subs=range(10)) )
-    # else:
-    #     plt.colorbar()
-
-    plt.tight_layout()
-    make_folder_if_not_exists(output_folder + '/mu_values/')
-
-    if mode != "":
-        mode = "_" + mode
-    plt.savefig(output_folder + '/mu_values/' + '/mu_%s_gSM_vs_gDM_%.0f_mV%s.pdf' % (process, mV, mode))
-    plt.close()
-
-
-def make_limit_plot_BR_Gtot(tree, mV=1000, mode="BlindExp", process='visible'):
-    global output_folder, log_scale
-
-    my_tree = tree.Clone()
-
-    # plt.figure(figsize=(8,8))
-    fig, axes = plt.subplots(figsize=(8, 8))
-    plotTitle = 'Expected and observed limit, $m_{DM}=$' + '{:.0f} GeV'.format(
-        mDM) + ', $m_{V}=$' + '{:.0f} GeV'.format(mV)
-    if "BlindExp" in mode:
-        plotTitle = plotTitle.replace("and observed ", "")
-
-    if process == 'visible':
-        set_labels(plt, axes, additional_text_visible)
-        selection = "(limit_vis_exp < 1) && (mV==%s)" % mV
-    else:
-        set_labels(plt, axes, additional_text_invisible)
-        selection = "(limit_invis_exp < 1) && (mV==%s)" % mV
-
-    print 'Making a BR/width 2D limit plot for %s process, mV = %.0f GeV' % (process, mV)
-
-    histogram = Hist2D(100, 0, 1, 20, 0, 100)
-    my_tree.Draw("BR:G_tot", selection, hist=histogram)
-    # x_min = min(list( histogram.x()))
-    # x_min = max(list( histogram.x()))
-
-    im = rplt.imshow(histogram, axes=axes, cmap=my_cmap, vmin=0.1)
-
-    # colorbar = plt.colorbar( im )
-
-
-    # print histogram.Integral()
-    # raw_input("Press Enter to continue...")
-
-    # ml = MultipleLocator(0.01)
-    # axes.yaxis.set_minor_locator(ml)
-
-    plt.title(plotTitle)
-    plt.xlabel('BR$_{DM}$')
-    plt.ylabel('$\Gamma_{V}$')
-
-    plt.legend(loc='lower right')
-
-    plt.xlim(min(list(histogram.x())), max(list(histogram.x())))
-    plt.ylim(min(list(histogram.y())), max(list(histogram.y())))
-
-    # if log_scale:
-    #     plt.colorbar( ticks = LogLocator(subs=range(10)) )
-    # else:
-    #     plt.colorbar()
-
-    plt.tight_layout()
-    make_folder_if_not_exists(output_folder + '/mu_values/')
-
-    if mode != "":
-        mode = "_" + mode
-    plt.savefig(output_folder + '/mu_values/' + '/mu_%s_BR_vs_Gtot_%.0f_mV%s.pdf' % (process, mV, mode))
-    plt.close()
-
-
-def make_limit_plot_BR_a_r(tree, mV=1000, mode="BlindExp", process='visible'):
+def make_limit_plot_with_tree_draw_BR_a_r(tree, mV=1000, mode="BlindExp", process='visible'):
     global output_folder, log_scale
 
     my_tree = tree.Clone()
@@ -839,19 +716,8 @@ def make_limit_plot_BR_a_r(tree, mV=1000, mode="BlindExp", process='visible'):
 
     histogram = Hist2D(10, 0.01, 0.99, 15, 0, 0.15)
     my_tree.Draw("BR:a_r", selection, hist=histogram)
-    # x_min = min(list( histogram.x()))
-    # x_min = max(list( histogram.x()))
 
     im = rplt.imshow(histogram, axes=axes, cmap=my_cmap, vmin=0.1)
-
-    # colorbar = plt.colorbar( im )
-
-
-    # print histogram.Integral()
-    # raw_input("Press Enter to continue...")
-
-    # ml = MultipleLocator(0.01)
-    # axes.yaxis.set_minor_locator(ml)
 
     plt.title(plotTitle)
     plt.xlabel('BR$_{DM}$')
@@ -862,17 +728,12 @@ def make_limit_plot_BR_a_r(tree, mV=1000, mode="BlindExp", process='visible'):
     plt.xlim(min(list(histogram.x())), max(list(histogram.x())))
     plt.ylim(min(list(histogram.y())), max(list(histogram.y())))
 
-    # if log_scale:
-    #     plt.colorbar( ticks = LogLocator(subs=range(10)) )
-    # else:
-    #     plt.colorbar()
-
     plt.tight_layout()
     make_folder_if_not_exists(output_folder + '/mu_values/')
 
     if mode != "":
         mode = "_" + mode
-    plt.savefig(output_folder + '/mu_values/' + '/mu_%s_BR_vs_a_r_%.0f_mV%s.pdf' % (process, mV, mode))
+    plt.savefig(output_folder + '/mu_values/' + '/tree_draw_%s_BR_vs_a_r_%.0f_mV%s.pdf' % (process, mV, mode))
     plt.close()
 
 
@@ -1071,9 +932,9 @@ if __name__ == '__main__':
     parser.add_option("-o", "--output_folder", dest="output_folder", default='plots_exp/',
                       help="set path to save plots")
     parser.add_option("-i", "--input_folder", dest="input_folder",
-                      default='/Users/senkin/work/Analysis_work/LimitsOutput_BR/',
+                      # default='/Users/senkin/work/Analysis_work/LimitsOutput_BR/',
                       # default='/Users/senkin/work/Analysis_work/LimitsOutput_zoom/',
-                      # default='/Users/senkin/work/Analysis_work/LimitsOutput/',
+                      default='/Users/senkin/work/Analysis_work/LimitsOutput/',
                       help="set path to limits")
     parser.add_option("-l", "--log_scale", action="store_true", dest="log_scale",
                       help="Plot histograms in log scale")
@@ -1144,18 +1005,17 @@ if __name__ == '__main__':
 
     g_DMs = [0.1, 0.5, 1.0, 1.5]
 
-    # for g_DM in g_DMs:
-    #     make_2D_limit_plot_from_tree(rootpy_tree, variables='mV:a_r', select_gDM=g_DM, mode=mode, process='visible')
-    #     # make_2D_limit_plot_from_tree(rootpy_tree, variables='mV:a_r', select_gDM=g_DM, mode=mode, process='invisible')
-    #     make_2D_limit_plot_from_tree(rootpy_tree, variables='mV:a_r', select_gDM=g_DM, mode=mode, process='overlay')
+    for g_DM in g_DMs:
+        make_2D_limit_plot_from_tree(rootpy_tree, variables='mV:a_r', select_gDM=g_DM, mode=mode, process='visible')
+        # make_2D_limit_plot_from_tree(rootpy_tree, variables='mV:a_r', select_gDM=g_DM, mode=mode, process='invisible')
+        make_2D_limit_plot_from_tree(rootpy_tree, variables='mV:a_r', select_gDM=g_DM, mode=mode, process='overlay')
 
     if options.BR_run:
         make_2D_limit_plot_from_tree(rootpy_tree, variables='BR:a_r', select_mV=1000, mode="BlindExp", process='overlay', interpolate=True, show_nwa_area=True)
         make_2D_limit_plot_from_tree(rootpy_tree, variables='BR:G_tot', select_mV=1000, mode="BlindExp", process='overlay', interpolate=True, show_nwa_area=True)
     else:
         make_2D_limit_plot_from_tree(rootpy_tree, variables='g:a_r', select_mV=1000, mode="BlindExp", process='overlay', interpolate=True, show_nwa_area=True)        
-        # make_2D_limit_plot_from_tree(rootpy_tree, variables='g:G_tot', select_mV=1000, mode="BlindExp", process='overlay', interpolate=True, show_nwa_area=True)
-        # make_2D_limit_plot_from_tree(rootpy_tree, variables='g:a_r', select_mV=1000, mode="BlindExp", process='invisible', interpolate=False, show_nwa_area=True)        
+        make_2D_limit_plot_from_tree(rootpy_tree, variables='g:G_tot', select_mV=1000, mode="BlindExp", process='overlay', interpolate=True, show_nwa_area=True)
 
     if options.fraction_plots:
         for mV in mediator_masses:
