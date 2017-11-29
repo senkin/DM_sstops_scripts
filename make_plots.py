@@ -386,16 +386,10 @@ def get_limits_from_tree(tree, variables='mV:a_r', process = 'visible', limit_ty
 
 
 def make_all_plots(mV, my_data, process):
-    make_limitless_plots(mV, my_data, process)
     if 'visible' in process:
         make_limit_plots(mV, my_data, process)
     elif not 'monotop' in process:
         make_2D_plots(mV, my_data, process, show_alpha_beta_gamma=True)
-
-
-def make_limitless_plots(mV, my_data, process):
-    make_2D_plots(mV, my_data, process)
-
 
 def make_limit_plots(mV, my_data, process='visible'):
     make_2D_plots(mV, my_data, process, with_limits=True)
@@ -990,24 +984,11 @@ if __name__ == '__main__':
     rootpy_file = root_open("tree.root")
     rootpy_tree = rootpy_file.ntuple
 
-    # work with a single mV:
-    if options.more_plots:
-        for mV in mediator_masses:
-            single_mV_data = whole_data[whole_data[:, 5] == mV]
-            for process in processes:
-                make_all_plots(mV, single_mV_data, process)
-
     # make a g_SM vs mV limit plot
-    first_a_r_data = whole_data[whole_data[:, 2] == whole_data[:, 2][0]]
-    g_DMs = first_a_r_data[:, 3]
-    # select first, middle and last g_DMs
-    g_DMs = [g_DMs[0], g_DMs[(len(g_DMs) - 1) / 2], g_DMs[-1]]
-
     g_DMs = [0.1, 0.5, 1.0, 1.5]
 
     for g_DM in g_DMs:
         make_2D_limit_plot_from_tree(rootpy_tree, variables='mV:a_r', select_gDM=g_DM, mode=mode, process='visible')
-        # make_2D_limit_plot_from_tree(rootpy_tree, variables='mV:a_r', select_gDM=g_DM, mode=mode, process='invisible')
         make_2D_limit_plot_from_tree(rootpy_tree, variables='mV:a_r', select_gDM=g_DM, mode=mode, process='overlay')
 
     if options.BR_run:
@@ -1016,6 +997,13 @@ if __name__ == '__main__':
     else:
         make_2D_limit_plot_from_tree(rootpy_tree, variables='g:a_r', select_mV=1000, mode="BlindExp", process='overlay', interpolate=True, show_nwa_area=True)        
         make_2D_limit_plot_from_tree(rootpy_tree, variables='g:G_tot', select_mV=1000, mode="BlindExp", process='overlay', interpolate=True, show_nwa_area=True)
+
+    # work with a single mV:
+    if options.more_plots:
+        for mV in mediator_masses:
+            single_mV_data = whole_data[whole_data[:, 5] == mV]
+            for process in processes:
+                make_all_plots(mV, single_mV_data, process)
 
     if options.fraction_plots:
         for mV in mediator_masses:
