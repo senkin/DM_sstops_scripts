@@ -95,12 +95,15 @@ def set_labels(plt, axes, additional_text):
 
 
 def get_limit_value(mV, a_r, g = '', BR='', type=1, process='visible', xsection_monotop=''):
+    global parameterisation
     if process == 'visible':
         global input_folder_with_limits, mode, bkg_type
         if BR:
             signal_name = 'sstops_mV{0:.0f}'.format(mV) + '_a_r{0:.2f}'.format(a_r) + '_BR{0:.2f}'.format(BR)
         else:
             signal_name = 'sstops_mV{0:.0f}'.format(mV) + '_a_r{0:.2f}'.format(a_r) + '_g{0:.2f}'.format(g)
+            if 'nominal_fine' in parameterisation:
+                signal_name = 'sstops_mV{0:.0f}'.format(mV) + '_a_r{0:.3f}'.format(a_r) + '_g{0:.2f}'.format(g)
 
         try:
             input_root_file = ROOT.TFile(input_folder + '/' + signal_name + '/' + mode + '/' + bkg_type + 'bkg.root', "read")
@@ -923,12 +926,10 @@ def make_2D_plots(mV, my_data, process, with_limits=False, show_only_mu=False, s
 
 if __name__ == '__main__':
     parser = OptionParser()
-    parser.add_option("-o", "--output_folder", dest="output_folder", default='plots_exp/',
+    parser.add_option("-o", "--output_folder", dest="output_folder", default='plots/',
                       help="set path to save plots")
     parser.add_option("-i", "--input_folder", dest="input_folder",
-                      # default='/Users/senkin/work/Analysis_work/LimitsOutput_BR/',
-                      # default='/Users/senkin/work/Analysis_work/LimitsOutput_zoom/',
-                      default='/Users/senkin/work/Analysis_work/LimitsOutput/',
+                      default='/eos/atlas/atlascerngroupdisk/phys-exotics/hqt/SSbjets/Limit/sstops_limits_outputs/',
                       help="set path to limits")
     parser.add_option("-l", "--log_scale", action="store_true", dest="log_scale",
                       help="Plot histograms in log scale")
@@ -937,11 +938,9 @@ if __name__ == '__main__':
     parser.add_option("-a", "--additional_plots", action="store_true", dest="more_plots",
                       help="Make additional plots")
     parser.add_option("-m", "--mode", dest="mode", default='',
-                      help="set mode (e.g. BlindExp)")
-    parser.add_option("-d", "--data_driven", action="store_true", dest="data_driven",
-                      help="Use data-driven background instead of full MC background")
-    parser.add_option("-B", "--BR_parameters", action="store_true", dest="BR_run",
-                      help="Use BR parameterisation to read the input limit files")
+                      help="set mode (e.g. BlindExp), empty by default (i.e. unblinded)")
+    parser.add_option("-p", "--parameterisation", dest="parameterisation", default = 'nominal',
+                      help="Choose paramaterisation of interest (nominal, nominal_fine, BR_scan_a_r_0.15, zoomed_in_scan_a_r_0.15_g_3.0)")
 
     (options, args) = parser.parse_args()
 
@@ -950,48 +949,74 @@ if __name__ == '__main__':
     make_folder_if_not_exists(output_folder)
 
     input_folder = options.input_folder
-    data_driven = options.data_driven
     mode = options.mode
+    parameterisation = options.parameterisation
 
-    if data_driven:
-        bkg_type = 'DD'
+    # possible parameterisations:
+    # nominal: a_r from 0.01 to 0.34, g = [0.1, 0.5, 1.0, 1.5]
+    # nominal_fine: a_r from 0.05 to 0.345 with a step of 0.005, g = [0.1, 0.5, 1.0]
+    # large_scan_a_r_g_3.0: inital scan for both a_r and g from 0 up to 3.0 with a step of 0.2
+    # zoomed_in_scan_a_r_0.15_g_3.0: similar scan but zoomed range of a_r from 0.01 to 0.15
+    # BR_scan_a_r_0.15: a_r varies from 0.01 ro 0.15, BR from 0 to 1
+
+    if 'BR_scan' in parameterisation:
+        BR_run = True
     else:
-        bkg_type = 'FullMC'
+        BR_run = False
+
+    # temporary fix for the lack of observed limits in non-nominal scans:
+    if not 'nominal' in parameterisation:
+        mode = 'BlindExp'
+
+    input_folder += '/' + parameterisation
+    output_folder += '/' + parameterisation
+
+    # file path to the parameters table, based on the parameterisation name
+    parameter_table = 'parameter_tables/table_' + parameterisation + '.csv'
+
+    # temporary fix for the lack of visible limit files for a_r>0.15 (automatically excluded)
+    parameter_table = parameter_table.replace('a_r_0.15', 'a_r_0.3')
+
+    # data-driven by default, switch to 'FullMC' if needed
+    bkg_type = 'DD'
 
     input_folder += '/' + bkg_type
     output_folder += '/' + bkg_type
 
-    if options.mode != '':
-        input_folder += '_' + options.mode
-        output_folder += '_' + options.mode
+    if mode != '':
+        input_folder += '_' + mode
+        output_folder += '_' + mode
 
     log_scale = options.log_scale
     if log_scale:
         output_folder += '/log/'
 
-    whole_data = np.genfromtxt('big_table.csv', delimiter=',')
+    whole_data = np.genfromtxt(parameter_table, delimiter=',')
     # delete first row (variable names)
     whole_data = np.delete(whole_data, (0), axis=0)
 
     temp_root_file = ROOT.TFile("tree.root", "recreate")
     tree = ROOT.TTree("ntuple", "data from csv table")
-    nlines = tree.ReadFile('big_table.csv','BR/D:G_tot/D:a_r/D:g/D:mDM/D:mV/D:xsection_monotop/D:xsection_offshellV/D:xsection_onshellV/D:xsection_tt_exclusive/D',',')
+    nlines = tree.ReadFile(parameter_table,'BR/D:G_tot/D:a_r/D:g/D:mDM/D:mV/D:xsection_monotop/D:xsection_offshellV/D:xsection_onshellV/D:xsection_tt_exclusive/D',',')
     print "found %s points" % (nlines)
-    tree = load_limits_to_tree(tree, mode, BR_run=options.BR_run)
+    tree = load_limits_to_tree(tree, mode, BR_run=BR_run)
     temp_root_file.Write()
     temp_root_file.Close()
 
     rootpy_file = root_open("tree.root")
     rootpy_tree = rootpy_file.ntuple
 
-    # make a g_SM vs mV limit plot
-    g_DMs = [0.1, 0.5, 1.0, 1.5]
+    if 'nominal' in parameterisation:
+        # make a g_SM vs mV limit plot
+        g_DMs = [0.1, 0.5, 1.0, 1.5]
+        if 'fine' in parameterisation:
+            # don't have 1.5 in 'fine' parameterisation yet
+            g_DMs = [0.1, 0.5, 1.0]
 
-    for g_DM in g_DMs:
-        make_2D_limit_plot_from_tree(rootpy_tree, variables='mV:a_r', select_gDM=g_DM, mode=mode, process='visible')
-        make_2D_limit_plot_from_tree(rootpy_tree, variables='mV:a_r', select_gDM=g_DM, mode=mode, process='overlay')
-
-    if options.BR_run:
+        for g_DM in g_DMs:
+            make_2D_limit_plot_from_tree(rootpy_tree, variables='mV:a_r', select_gDM=g_DM, mode=mode, process='visible')
+            make_2D_limit_plot_from_tree(rootpy_tree, variables='mV:a_r', select_gDM=g_DM, mode=mode, process='overlay')
+    elif BR_run:
         make_2D_limit_plot_from_tree(rootpy_tree, variables='BR:a_r', select_mV=1000, mode="BlindExp", process='overlay', interpolate=True, show_nwa_area=True)
         make_2D_limit_plot_from_tree(rootpy_tree, variables='BR:G_tot', select_mV=1000, mode="BlindExp", process='overlay', interpolate=True, show_nwa_area=True)
     else:
