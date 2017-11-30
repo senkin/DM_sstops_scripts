@@ -23,7 +23,7 @@ If you only want to make the plots using the existing limits output:
 ```
 # get the code from the repository
 git clone https://github.com/senkin/DM_sstops_scripts
-cd DM_sstops_scripts
+cd DM_sstops/scripts
 
 # make some plots (change input paths to the limit files accordingly)
 python make_plots.py
@@ -37,30 +37,28 @@ If you run on lxplus, set up the virtual python environment beforehand:
 ```
 # login on lxplus and go to your working directory
 # setup your tools, for example
-# setupATLAS
-# check that you have python 2.7, if not
+setupATLAS
 
-# lsetup python
+# check that you have python 2.7, if not:
+lsetup python
+
+# setup ROOT
+lsetup root
 
 # create the virtual env
-
 virtualenv -p `which python` venv
 # and activate it
-
 source venv/bin/activate
 
 # now update some core tools
-
 pip install --upgrade pip
 pip install --upgrade setuptools
 
 # for some reason pip tries to use the wrong gcc version, so force it:
-
 export CC=`which gcc`
 
 # now you are ready to install all the software you need
-
-pip install numpy scipy matplotlib
+pip install numpy scipy matplotlib rootpy
 ```
 
 Full recipe:
@@ -71,7 +69,7 @@ tar xvf MG5_aMC_v2.5.5.tar.gz
 
 # get the code from the repository and copy to the MadGraph working directory
 git clone https://github.com/senkin/DM_sstops_scripts
-cp DM_sstops_scripts/* MG5_aMC_v2_5_5/
+cp DM_sstops/scripts/* MG5_aMC_v2_5_5/
 cd MG5_aMC_v2_5_5
 
 # untar the DM model
