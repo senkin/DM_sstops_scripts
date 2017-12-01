@@ -1006,7 +1006,12 @@ if __name__ == '__main__':
     rootpy_file = root_open("tree.root")
     rootpy_tree = rootpy_file.ntuple
 
-    if 'nominal' in parameterisation:
+    if options.fraction_plots:
+        for mV in mediator_masses:
+            single_mV_data = whole_data[whole_data[:, 5] == mV]
+            make_fraction_plots(mV, single_mV_data, mode='visible')
+            make_fraction_plots(mV, single_mV_data, mode='total')
+    elif 'nominal' in parameterisation:
         # make a g_SM vs mV limit plot
         g_DMs = [0.1, 0.5, 1.0, 1.5]
         if 'fine' in parameterisation:
@@ -1029,11 +1034,5 @@ if __name__ == '__main__':
             single_mV_data = whole_data[whole_data[:, 5] == mV]
             for process in processes:
                 make_all_plots(mV, single_mV_data, process)
-
-    if options.fraction_plots:
-        for mV in mediator_masses:
-            single_mV_data = whole_data[whole_data[:, 5] == mV]
-            make_fraction_plots(mV, single_mV_data, mode='visible')
-            make_fraction_plots(mV, single_mV_data, mode='total')
-
+    
     rootpy_file.close()

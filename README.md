@@ -2,6 +2,8 @@
 ==================
 
 Scripts for generic Dark Matter analysis in the context of same-sign tops.
+Combination with monotop analysis is probed: [link](https://cds.cern.ch/record/2294626) to the internal note.
+The repository has been moved to an [internal repository](https://:@gitlab.cern.ch:8443/atlas-clermont/DM_sstops.git) for later development.
 
 ## Guidelines
 
@@ -10,11 +12,11 @@ Scripts for generic Dark Matter analysis in the context of same-sign tops.
 * submit_MG_jobs.py: this script submits batch jobs (normally on lxplus) for a set of parameters, using the script above for each point
 * make_results_table.py: this script creates a csv table with all the results (including cross-sections) from the MadGraph jobs' output
 * reweight_sstop_files.py: this script uses the csv table from the previous step to reweight the signal histograms used by TRexFitter
-* make_plots.py: a plotting script. Please specify the input folder with the limit files (../LimitsOutput/FullMC_BlindExp/) as an input parameter -i (or inside the script)
+* make_plots.py: a plotting script. Please specify the input folder with the limit files as an input parameter -i (or inside the script)
 
 ### Additional files
 * ParameterSpace.py: a parameter space class used in the calculate_MG_xsection.py script
-* big_table.csv: pre-calculated table made by make_results_table.py script. It can be used to directly reweight the histograms, skipping all the previous steps.
+* parameter_tables/*.csv: pre-calculated tables made by make_results_table.py script. It can be used to directly reweight the histograms, skipping all the previous steps.
 * MonotopDMF_UFO.tar.gz: the Dark Matter model used by MadGraph
 
 ### Quick recipe
@@ -25,6 +27,9 @@ If you only want to make the plots using the existing limits output:
 git clone https://github.com/senkin/DM_sstops_scripts
 cd DM_sstops/scripts
 
+# set up environment (using virtualenv for python):
+source setup.sh
+
 # make some plots (change input paths to the limit files accordingly)
 python make_plots.py
 
@@ -33,35 +38,7 @@ python make_plots.py -a
 
 ```
 
-If you run on lxplus, set up the virtual python environment beforehand:
-```
-# login on lxplus and go to your working directory
-# setup your tools, for example
-setupATLAS
-
-# check that you have python 2.7, if not:
-lsetup python
-
-# setup ROOT
-lsetup root
-
-# create the virtual env
-virtualenv -p `which python` venv
-# and activate it
-source venv/bin/activate
-
-# now update some core tools
-pip install --upgrade pip
-pip install --upgrade setuptools
-
-# for some reason pip tries to use the wrong gcc version, so force it:
-export CC=`which gcc`
-
-# now you are ready to install all the software you need
-pip install numpy scipy matplotlib rootpy
-```
-
-Full recipe:
+Recipe to create the MadGraph parameter tables output:
 ```
 # download [MadGraph](https://launchpad.net/mg5amcnlo), for example
 wget https://launchpad.net/mg5amcnlo/2.0/2.5.x/+download/MG5_aMC_v2.5.5.tar.gz
@@ -88,16 +65,7 @@ python submit_MG_jobs.py -r
 # make the results table (change input path accordingly)
 python make_results_table.py
 
-# make some plots (change input paths to the limit files accordingly)
-python make_plots.py
-
-# make some more plots
-python make_plots.py -a
-
 ```
-
-The main limit plot of interest will be in the plots/mu_values directory.
-One would have to adjust the script to plot both expected and observed results at the same time.
 
 ### Reweighting the histogram files for limits
 The reweight_sstop_files.py file is meant to be run from the LimitCalculation package as it requires the histograms that it creates on input.
