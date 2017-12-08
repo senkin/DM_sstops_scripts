@@ -105,15 +105,15 @@ def get_limit_value(mV, a_r, g = '', BR='', type=1, process='visible', xsection_
             if 'nominal_fine' in parameterisation:
                 signal_name = 'sstops_mV{0:.0f}'.format(mV) + '_a_r{0:.3f}'.format(a_r) + '_g{0:.2f}'.format(g)
 
-        try:
+        # known excluded regions for visible process (to save time by not running unnecessary jobs)
+        if mV==1000 and a_r>0.15 and not 'nominal' in parameterisation:
+            # automatic exclusion
+            value = 0.1
+        else:
             input_root_file = ROOT.TFile(input_folder + '/' + signal_name + '/' + mode + '/' + bkg_type + 'bkg.root', "read")
             histogram = input_root_file.Get("limit")
             value = histogram.GetBinContent(type)
             input_root_file.Close()
-        except:
-            # print 'Warning: problem with reading file %s' % input_folder + '/' + signal_name + '/' + mode + '/' + bkg_type + 'bkg.root'
-            # assuming exclusion
-            value = 0.1
 
         if value > 1e3:
             # print 'Warning: limit value for (mV = %s, a_r = %s, g = %s) is %s. Setting it to 1000.' % (mV, a_r, g, value)
@@ -554,6 +554,8 @@ def make_2D_limit_plot_from_tree(tree, variables='mV:a_r', select_gDM="", select
 
     if "BlindExp" in mode:
         plotTitle = plotTitle.replace("and observed ", "")
+    elif process=='overlay':
+        plotTitle = plotTitle.replace("Expected and observed ", "Observed ")
 
     if process == 'visible':
         set_labels(plt, axes, additional_text_visible)
@@ -612,15 +614,14 @@ def make_2D_limit_plot_from_tree(tree, variables='mV:a_r', select_gDM="", select
     if process == 'overlay':
         if not "BlindExp" in mode:
             plt.plot(x_values, limit_border_vis, '-', color="red", label='Observed limit (vis.)')
-            # correct once observed invisible limit is available!
-            plt.plot(x_values, limit_border_invis, '--', color="blue", label='Expected limit (invis.)')
+            plt.plot(x_values, limit_border_invis, '-', color="blue", label='Observed limit (invis.)')
             
             plt.fill_between(x_values, limit_border_vis, upper_border, facecolor='red', alpha = 0.5, edgecolor="red",
                                  label='Excluded area (vis.)')
             plt.fill_between(x_values, limit_border_invis, upper_border, facecolor='blue', alpha = 0.5, edgecolor="blue",
                                  label='Excluded area (invis.)')
         else:
-            plt.plot(x_values, limit_border_vis, '-', color="red", label='Expected limit (vis.)')
+            plt.plot(x_values, limit_border_vis, '--', color="red", label='Expected limit (vis.)')
             plt.plot(x_values, limit_border_invis, '--', color="blue", label='Expected limit (invis.)')
             
             plt.fill_between(x_values, limit_border_vis, upper_border, facecolor='red', alpha = 0.5, edgecolor="red",
@@ -649,6 +650,7 @@ def make_2D_limit_plot_from_tree(tree, variables='mV:a_r', select_gDM="", select
             plt.fill_between(x_values, nwa_area_border, upper_border, facecolor='darkgray', zorder = 3,
                         label='$\\Gamma_\\textrm{tot}/m_V>0.1$')
 
+    # adjusting ranges of axes
     plt.xlim(min(x_values), max(x_values))
     plt.ylim(min(y_axis_data), max(y_axis_data))
 
@@ -658,28 +660,37 @@ def make_2D_limit_plot_from_tree(tree, variables='mV:a_r', select_gDM="", select
     if 'BR:a_r' in variables:
         plt.ylim(0, max(y_axis_data))
 
+    # adjusting ticks
     if ':a_r' in variables:
         ml = MultipleLocator(0.01)
         axes.yaxis.set_minor_locator(ml)
 
     if 'g:' in variables or 'BR:' in variables:
         ml = MultipleLocator(0.1)
-        axes.xaxis.set_minor_locator(ml)        
+        axes.xaxis.set_minor_locator(ml)
 
+    # some hacking in to tick labels for proper ones in BR plots (visually up to 1, not 0.99)
+    if 'BR:' in variables:
+        xticks = np.arange(0, 1, 0.1)
+        xticks = np.append(xticks, 0.99)
+        xticks[0] = min(x_values)
+        plt.xticks(xticks)
 
+        labels = axes.get_xticks().tolist()
+        labels[0] = 0
+        labels[-1] = 1
+        axes.set_xticklabels(labels)
+
+    # adjusting plot and axes titles
     plt.title(plotTitle)
     plt.xlabel(latex_labels[x_variable_name])
     plt.ylabel(latex_labels[y_variable_name])
 
+    # adjusting legend
     plt.legend(loc='lower right')
 
     if 'BR:' in variables or 'g:a_r' in variables:
-        plt.legend(loc=[0.43, 0.45])
-
-    # if log_scale:
-    #     plt.colorbar( ticks = LogLocator(subs=range(10)) )
-    # else:
-    #     plt.colorbar()
+        plt.legend(loc=[0.43, 0.5])
 
     plt.tight_layout()
     make_folder_if_not_exists(output_folder + '/mu_values/')
@@ -940,7 +951,7 @@ if __name__ == '__main__':
     parser.add_option("-m", "--mode", dest="mode", default='',
                       help="set mode (e.g. BlindExp), empty by default (i.e. unblinded)")
     parser.add_option("-p", "--parameterisation", dest="parameterisation", default = 'nominal',
-                      help="Choose paramaterisation of interest (nominal, nominal_fine, BR_scan_a_r_0.15, zoomed_in_scan_a_r_0.15_g_3.0)")
+                      help="Choose paramaterisation of interest (nominal, nominal_fine, BR_scan_a_r_0.3, zoomed_in_scan_a_r_0.3_g_3.0)")
 
     (options, args) = parser.parse_args()
 
@@ -956,17 +967,13 @@ if __name__ == '__main__':
     # nominal: a_r from 0.01 to 0.34, g = [0.1, 0.5, 1.0, 1.5]
     # nominal_fine: a_r from 0.05 to 0.345 with a step of 0.005, g = [0.1, 0.5, 1.0]
     # large_scan_a_r_g_3.0: inital scan for both a_r and g from 0 up to 3.0 with a step of 0.2
-    # zoomed_in_scan_a_r_0.15_g_3.0: similar scan but zoomed range of a_r from 0.01 to 0.15
-    # BR_scan_a_r_0.15: a_r varies from 0.01 ro 0.15, BR from 0 to 1
+    # zoomed_in_scan_a_r_0.3_g_3.0: similar scan but zoomed range of a_r from 0.01 to 0.3
+    # BR_scan_a_r_0.3: a_r varies from 0.01 ro 0.3, BR from 0 to 1
 
     if 'BR_scan' in parameterisation:
         BR_run = True
     else:
         BR_run = False
-
-    # temporary fix for the lack of observed limits in non-nominal scans:
-    if not 'nominal' in parameterisation:
-        mode = 'BlindExp'
 
     input_folder += '/' + parameterisation
     output_folder += '/' + parameterisation
@@ -974,8 +981,9 @@ if __name__ == '__main__':
     # file path to the parameters table, based on the parameterisation name
     parameter_table = 'parameter_tables/table_' + parameterisation + '.csv'
 
-    # temporary fix for the lack of visible limit files for a_r>0.15 (automatically excluded)
-    parameter_table = parameter_table.replace('a_r_0.15', 'a_r_0.3')
+    # fix for automatically excluded limit folder names
+    # the parameter table has values up to a_r=0.3, whereas visible limit files - up to 0.15 (since a_r>0.15 are all excluded for visible process)
+    input_folder = input_folder.replace('a_r_0.3', 'a_r_0.15')
 
     # data-driven by default, switch to 'FullMC' if needed
     bkg_type = 'DD'
@@ -1022,11 +1030,11 @@ if __name__ == '__main__':
             make_2D_limit_plot_from_tree(rootpy_tree, variables='mV:a_r', select_gDM=g_DM, mode=mode, process='visible')
             make_2D_limit_plot_from_tree(rootpy_tree, variables='mV:a_r', select_gDM=g_DM, mode=mode, process='overlay')
     elif BR_run:
-        make_2D_limit_plot_from_tree(rootpy_tree, variables='BR:a_r', select_mV=1000, mode="BlindExp", process='overlay', interpolate=True, show_nwa_area=True)
-        make_2D_limit_plot_from_tree(rootpy_tree, variables='BR:G_tot', select_mV=1000, mode="BlindExp", process='overlay', interpolate=True, show_nwa_area=True)
+        make_2D_limit_plot_from_tree(rootpy_tree, variables='BR:a_r', select_mV=1000, mode=mode, process='overlay', interpolate=True, show_nwa_area=True)
+        make_2D_limit_plot_from_tree(rootpy_tree, variables='BR:G_tot', select_mV=1000, mode=mode, process='overlay', interpolate=True, show_nwa_area=True)
     else:
-        make_2D_limit_plot_from_tree(rootpy_tree, variables='g:a_r', select_mV=1000, mode="BlindExp", process='overlay', interpolate=True, show_nwa_area=True)        
-        make_2D_limit_plot_from_tree(rootpy_tree, variables='g:G_tot', select_mV=1000, mode="BlindExp", process='overlay', interpolate=True, show_nwa_area=True)
+        make_2D_limit_plot_from_tree(rootpy_tree, variables='g:a_r', select_mV=1000, mode=mode, process='overlay', interpolate=True, show_nwa_area=True)        
+        make_2D_limit_plot_from_tree(rootpy_tree, variables='g:G_tot', select_mV=1000, mode=mode, process='overlay', interpolate=True, show_nwa_area=True)
 
     # work with a single mV:
     if options.more_plots:
